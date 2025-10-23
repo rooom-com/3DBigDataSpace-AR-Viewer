@@ -1,0 +1,77 @@
+[
+  {
+    "id": "annotation-1",
+    "type": "Annotation",
+    "motivation": ["commenting"],
+    "bodyValue": "Reliquary Bust - This is a medieval reliquary in the form of a bust, likely containing sacred relics.",
+    "target": {
+      "type": "SpecificResource",
+      "source": [
+        {
+          "id": "scene1",
+          "type": "Scene"
+        }
+      ],
+      "selector": [
+        {
+          "type": "PointSelector",
+          "x": 0.0,
+          "y": 0.15,
+          "z": 0.0
+        }
+      ]
+    }
+  },
+  {
+    "id": "annotation-2",
+    "type": "Annotation",
+    "motivation": ["commenting"],
+    "body": {
+      "type": "TextualBody",
+      "value": "<p><strong>Head and Crown:</strong> The ornate crown and facial features show typical medieval craftsmanship and religious iconography.</p>",
+      "format": "text/html",
+      "language": "en"
+    },
+    "target": {
+      "type": "SpecificResource",
+      "source": [
+        {
+          "id": "scene1",
+          "type": "Scene"
+        }
+      ],
+      "selector": [
+        {
+          "type": "PointSelector",
+          "x": 0.0,
+          "y": 0.25,
+          "z": 0.0
+        }
+      ]
+    }
+  },
+  {
+    "id": "annotation-3",
+    "type": "Annotation",
+    "motivation": ["commenting"],
+    "bodyValue": "Base Structure - The base of the reliquary shows decorative elements typical of medieval religious art.",
+    "target": {
+      "type": "SpecificResource",
+      "source": [
+        {
+          "id": "scene1",
+          "type": "Scene"
+        }
+      ],
+      "selector": [
+        {
+          "type": "PointSelector",
+          "x": 0.0,
+          "y": 0.05,
+          "z": 0.0
+        }
+      ]
+    }
+  }
+]
+
