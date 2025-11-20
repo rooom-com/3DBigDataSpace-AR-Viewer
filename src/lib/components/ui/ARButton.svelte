@@ -66,7 +66,7 @@
 {#if showButton}
 	<div class="absolute bottom-4 right-4" style="z-index: 99999;">
 		<button
-			class="ar-button flex size-12 items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-lg backdrop-blur-sm transition-all hover:bg-white hover:shadow-xl cursor-pointer"
+			class="ar-button flex size-12 items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-lg backdrop-blur-sm transition-all hover:bg-white hover:shadow-xl"
 			onclick={handleARClick}
 			aria-label="View in Augmented Reality"
 			title="View in AR"

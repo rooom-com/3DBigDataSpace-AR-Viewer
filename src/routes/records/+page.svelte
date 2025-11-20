@@ -299,7 +299,7 @@ function handlePageSizeChange(event: Event) {
 					/>
 					<button
 						type="button"
-						class="h-9 px-3 rounded-sm bg-sky-600 hover:bg-sky-700 disabled:bg-sky-400 text-white transition-colors flex items-center justify-center min-w-[36px]"
+						class="h-9 px-3 rounded-sm bg-sky-600 hover:bg-sky-700 disabled:bg-sky-400 text-white transition-colors flex items-center justify-center min-w-[36px] cursor-pointer"
 						onclick={handleManualSearch}
 						disabled={isSearching}
 						title="Search"
@@ -315,7 +315,7 @@ function handlePageSizeChange(event: Event) {
 					<label for="pageSize" class="text-sm text-slate-600">Show:</label>
 					<select
 						id="pageSize"
-						class="h-9 rounded-sm border border-slate-300 bg-white pl-2 pr-8 text-sm"
+						class="h-9 rounded-sm border border-slate-300 bg-white pl-2 pr-8 text-sm cursor-pointer"
 						bind:value={size}
 						onchange={handlePageSizeChange}
 					>
@@ -418,7 +418,7 @@ function handlePageSizeChange(event: Event) {
 				</div>
 			{:then test}
 				<ul
-					class="flex flex-col *:cursor-pointer *:border-b *:border-slate-200 *:px-4 *:py-3 *:hover:bg-slate-100 {isNavigating ? 'opacity-50' : ''}"
+					class="flex flex-col *:border-b *:border-slate-200 *:px-4 *:py-3 *:hover:bg-slate-100 {isNavigating ? 'opacity-50' : ''}"
 				>
 					{#each records as record (record.id)}
 						<li>
@@ -467,7 +467,7 @@ function handlePageSizeChange(event: Event) {
 			</p>
 			<div class="flex items-center">
 				<button
-					class="disabled:text-opacity-50 inline-flex size-10 items-center justify-center rounded-full bg-transparent hover:bg-slate-200 disabled:cursor-not-allowed hover:disabled:bg-transparent"
+					class="disabled:text-opacity-50 inline-flex size-10 items-center justify-center rounded-full bg-transparent hover:bg-slate-200 disabled:cursor-not-allowed hover:disabled:bg-transparent cursor-pointer"
 					disabled={pageNumber <= 1 || isNavigating}
 					onclick={() => {
 						pageNumber = pageNumber - 1
@@ -483,7 +483,7 @@ function handlePageSizeChange(event: Event) {
 					{/if}
 				</span>
 				<button
-					class="disabled:text-opacity-50 inline-flex size-10 items-center justify-center rounded-full bg-transparent hover:bg-slate-200 disabled:cursor-not-allowed hover:disabled:bg-transparent"
+					class="disabled:text-opacity-50 inline-flex size-10 items-center justify-center rounded-full bg-transparent hover:bg-slate-200 disabled:cursor-not-allowed hover:disabled:bg-transparent cursor-pointer"
 					disabled={pageNumber >= totalPages || isNavigating}
 					onclick={() => {
 						pageNumber = pageNumber + 1

@@ -39,7 +39,7 @@
 
 {#if isMobile}
 	<button
-		class="fixed left-4 top-20 z-30 flex size-10 items-center justify-center rounded-lg bg-white/90 text-slate-700 shadow-lg backdrop-blur-sm transition-all hover:bg-white hover:shadow-xl cursor-pointer"
+		class="fixed left-4 top-20 z-30 flex size-10 items-center justify-center rounded-lg bg-white/90 text-slate-700 shadow-lg backdrop-blur-sm transition-all hover:bg-white hover:shadow-xl"
 		onclick={toggleSidebar}
 		aria-label="Toggle sidebar"
 	>
@@ -69,7 +69,7 @@
 	<div class="flex h-full flex-col overflow-y-auto p-6">
 		{#if isMobile}
 			<button
-				class="absolute right-4 top-4 flex size-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
+				class="absolute right-4 top-4 flex size-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
 				onclick={closeSidebar}
 				aria-label="Close sidebar"
 			>

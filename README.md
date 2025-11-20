@@ -47,12 +47,12 @@ The platform includes an embeddable 3D viewer that can be integrated into extern
 
 ```html
 <iframe
-    src="https://your-domain.org/embed?model=MODEL_URL"
-    width="800"
-    height="600"
-    allow="xr-spatial-tracking; accelerometer; gyroscope"
-    allowfullscreen
-    style="border: none;"
+	src="https://your-domain.org/embed?model=MODEL_URL"
+	width="800"
+	height="600"
+	allow="xr-spatial-tracking; accelerometer; gyroscope"
+	allowfullscreen
+	style="border: none;"
 ></iframe>
 ```
 

@@ -24,6 +24,7 @@
 
 	import AnnotationTooltip from './AnnotationTooltip.svelte'
 	import ArButton from './ARButton.svelte'
+	import ARPopover from './ARPopover.svelte'
 
 	import { AnnotationRenderer } from '$lib/services/annotationRenderer'
 	import { parseMETSXML, createSampleAnnotations, loadIIIFAnnotationsForRecord } from '../../../services/xmlParser'
@@ -326,8 +327,9 @@
 
 		camera.lowerRadiusLimit = radius * 0.2
 		camera.upperRadiusLimit = radius * 5
-		camera.minZ = 0.001
-		camera.maxZ = radius * 10
+		camera.minZ = radius * 0.01
+		camera.maxZ = radius * 20
+
 		camera.wheelPrecision = (1 / camera.radius) * 400
 		camera.panningSensibility = (1 / camera.radius) * 4000
 	}
@@ -416,4 +418,5 @@
 	{/if}
 
 	<ArButton glbUrl={file} usdzUrl={usdzFile} />
+	<ARPopover glbUrl={file} usdzUrl={usdzFile} />
 </div>
