@@ -47,18 +47,19 @@
 	{/snippet}
 
 	<button
-		class="flex items-center gap-1 text-slate-400 hover:text-sky-500 cursor-pointer"
+		class="flex items-center gap-1 text-slate-400 hover:text-sky-500 cursor-pointer whitespace-nowrap"
 		onclick={handleBackToRecords}
 		title={savedState ? `Back to Records (Page ${savedState.pageNumber}${savedState.filterName ? `, Search: "${savedState.filterName}"` : ''})` : 'Back to Records'}
 	>
-		<Icon icon="tabler:chevron-left" class="size-5" />
-		<span class="text">
+		<Icon icon="tabler:chevron-left" class="size-4 md:size-5" />
+		<span class="hidden sm:inline">
 			{#if savedState && (savedState.pageNumber > 1 || savedState.filterName)}
 				Back to Results
 			{:else}
 				Back to Records
 			{/if}
 		</span>
+		<span class="sm:hidden">Back</span>
 	</button>
 </Header>
 
@@ -81,7 +82,17 @@
 		<RecordSidebar record={result} />
 
 		<div class="flex-1 relative">
-			<Viewer file={result.glb} usdzFile={result.usdz} />
+			{#if result.glb}
+				<Viewer file={result.glb} usdzFile={result.usdz} />
+			{:else}
+				<div class="flex h-full w-full items-center justify-center bg-gradient-to-b from-slate-50 to-slate-300">
+					<div class="text-center max-w-md px-6">
+						<Icon icon="tabler:file-3d" class="mx-auto mb-4 size-16 text-slate-400" />
+						<h3 class="mb-2 text-lg font-semibold text-slate-800">No 3D Model Available</h3>
+						<p class="text-slate-600">This record does not contain a 3D model file (.glb).</p>
+					</div>
+				</div>
+			{/if}
 		</div>
 	</div>
 {:else}

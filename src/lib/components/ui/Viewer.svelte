@@ -114,6 +114,9 @@
 	}
 
 	async function loadAsset(file: string, fileType: string = 'glb') {
+		const TIMEOUT_MS = 30000
+		let timeoutId: number | undefined
+
 		try {
 			if (!engine || !scene) {
 				throw new Error('3D engine not initialized')
@@ -123,20 +126,46 @@
 			loadingProgress = 0
 			error = ''
 
-			container = await LoadAssetContainerAsync(file, scene, {
+			console.log('Loading 3D model from:', file)
+
+			const timeoutPromise = new Promise<never>((_, reject) => {
+				timeoutId = window.setTimeout(() => {
+					reject(new Error('timeout'))
+				}, TIMEOUT_MS)
+			})
+
+			const loadPromise = LoadAssetContainerAsync(file, scene, {
 				onProgress: (evt) => {
 					if (evt.lengthComputable) {
 						loadingProgress = (evt.loaded * 100) / evt.total
+						console.log(`Loading progress: ${Math.round(loadingProgress)}%`)
 					}
 				},
 				pluginExtension: `.${fileType}`
 			})
-			container.addAllToScene()
 
+			container = await Promise.race([loadPromise, timeoutPromise])
+
+			if (timeoutId) clearTimeout(timeoutId)
+
+			console.log('Model loaded, container:', container)
+			console.log('Meshes in container:', container.meshes.length)
+			console.log('Meshes:', container.meshes.map(m => ({ name: m.name, vertices: m.getTotalVertices() })))
+
+			if (!container.meshes || container.meshes.length === 0) {
+				throw new Error('Model loaded but contains no meshes')
+			}
+
+			container.addAllToScene()
+			console.log('Model added to scene successfully')
 			isLoading = false
 		} catch (err) {
+			if (timeoutId) clearTimeout(timeoutId)
+
 			console.error('Error loading 3D model:', err)
-			error = err instanceof Error ? err.message : 'Failed to load 3D model. Please try again.'
+			error = err instanceof Error && err.message === 'timeout'
+				? 'Loading timeout - the model took too long to load. Please try again.'
+				: `Failed to load 3D model: ${err instanceof Error ? err.message : 'Unknown error'}`
 			isLoading = false
 		}
 	}
@@ -298,40 +327,79 @@
 			if (!url) {
 				error = 'No 3D model URL provided'
 				isLoading = false
+				console.error('createScene called without URL')
 				return
 			}
+
+			console.log('Creating scene with URL:', url, 'fileType:', fileType)
 			await loadAsset(url, fileType)
-			fitCamera()
+
+			if (!error) {
+				fitCamera()
+			}
 		} catch (err) {
 			console.error('Error creating scene:', err)
-			error = err instanceof Error ? err.message : 'Failed to load 3D scene'
+			if (!error) {
+				error = `Failed to load 3D model: ${err instanceof Error ? err.message : 'Unknown error'}`
+			}
 			isLoading = false
 		}
 	}
 
 	export function fitCamera() {
-		if (!scene || !container || !camera) return
+		if (!scene || !container || !camera) {
+			console.warn('Cannot fit camera: missing scene, container, or camera')
+			return
+		}
 
-		const boundingInfo = container.meshes[0].getHierarchyBoundingVectors()
-		const boundingBox = new BoundingBox(boundingInfo.min, boundingInfo.max)
-		const center = boundingBox.centerWorld
-		const extent = boundingBox.extendSizeWorld
+		if (!container.meshes || container.meshes.length === 0) {
+			console.error('Cannot fit camera: container has no meshes')
+			error = 'Model loaded but appears to be empty'
+			isLoading = false
+			return
+		}
 
-		const maxDimension = Math.max(extent.x, extent.y, extent.z)
-		const radius = maxDimension * 1.5
+		try {
+			console.log('Fitting camera to model...')
+			const boundingInfo = container.meshes[0].getHierarchyBoundingVectors()
+			const boundingBox = new BoundingBox(boundingInfo.min, boundingInfo.max)
+			const center = boundingBox.centerWorld
+			const extent = boundingBox.extendSizeWorld
 
-		camera.target = center.clone()
-		camera.radius = boundingBox.maximum.subtract(boundingBox.minimum).length() * 1.5
-		camera.alpha = Math.PI / 3
-		camera.beta = Math.PI / 3
+			console.log('Bounding box:', {
+				center: center.asArray(),
+				extent: extent.asArray(),
+				min: boundingBox.minimum.asArray(),
+				max: boundingBox.maximum.asArray()
+			})
 
-		camera.lowerRadiusLimit = radius * 0.2
-		camera.upperRadiusLimit = radius * 5
-		camera.minZ = radius * 0.01
-		camera.maxZ = radius * 20
+			const maxDimension = Math.max(extent.x, extent.y, extent.z)
+			const radius = maxDimension * 1.5
 
-		camera.wheelPrecision = (1 / camera.radius) * 400
-		camera.panningSensibility = (1 / camera.radius) * 4000
+			camera.target = center.clone()
+			camera.radius = boundingBox.maximum.subtract(boundingBox.minimum).length() * 1.5
+			camera.alpha = Math.PI / 3
+			camera.beta = Math.PI / 3
+
+			camera.lowerRadiusLimit = radius * 0.2
+			camera.upperRadiusLimit = radius * 5
+			camera.minZ = Math.max(0.001, radius * 0.001)
+			camera.maxZ = radius * 100
+
+			camera.wheelPrecision = (1 / camera.radius) * 400
+			camera.panningSensibility = (1 / camera.radius) * 4000
+
+			console.log('Camera fitted:', {
+				target: camera.target.asArray(),
+				radius: camera.radius,
+				minZ: camera.minZ,
+				maxZ: camera.maxZ
+			})
+		} catch (err) {
+			console.error('Error fitting camera:', err)
+			error = 'Failed to position camera on model'
+			isLoading = false
+		}
 	}
 
 	function resizeObserver() {
@@ -349,16 +417,31 @@
 
 	onMount(async () => {
 		try {
+			if (!file || file.trim() === '') {
+				console.error('Viewer mounted without valid file URL:', file)
+				error = 'No 3D model URL provided'
+				isLoading = false
+				return
+			}
+
+			console.log('Viewer mounted with file:', file)
+
 			init()
 			if (isInitialized) {
 				createEnvironment()
 				initializeAnnotationSystem()
 				start()
 				await createScene(file, 'glb')
+			} else {
+				console.error('Failed to initialize viewer')
+				error = 'Failed to initialize 3D viewer'
+				isLoading = false
 			}
 		} catch (err) {
 			console.error('Error during component mount:', err)
-			error = 'Failed to initialize 3D viewer'
+			if (!error) {
+				error = 'Failed to load 3D model'
+			}
 			isLoading = false
 		}
 	})
@@ -391,15 +474,16 @@
 
 	{#if error}
 		<div class="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-slate-50 to-slate-300">
-			<div class="max-w-md text-center">
+			<div class="max-w-md px-6 text-center">
 				<Icon icon="tabler:alert-circle" class="mx-auto mb-4 size-12 text-red-500" />
 				<h3 class="mb-2 text-lg font-semibold text-slate-800">Unable to Load 3D Model</h3>
-				<p class="mb-4 text-slate-600">{error}</p>
+				<p class="mb-4 text-slate-600">Please try again.</p>
 				<button
 					class="rounded-lg bg-sky-600 px-4 py-2 text-white hover:bg-sky-700 transition-colors"
 					onclick={() => {
 						error = ''
 						isLoading = true
+						loadingProgress = 0
 						createScene(file, 'glb')
 					}}
 				>

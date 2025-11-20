@@ -39,7 +39,7 @@
 
 {#if isMobile}
 	<button
-		class="fixed left-4 top-20 z-30 flex size-10 items-center justify-center rounded-lg bg-white/90 text-slate-700 shadow-lg backdrop-blur-sm transition-all hover:bg-white hover:shadow-xl"
+		class="fixed left-4 top-14 z-30 flex size-10 items-center justify-center rounded-lg bg-white/90 text-slate-700 shadow-lg backdrop-blur-sm transition-all hover:bg-white hover:shadow-xl"
 		onclick={toggleSidebar}
 		aria-label="Toggle sidebar"
 	>
@@ -64,7 +64,7 @@
 {/if}
 
 <aside
-	class="h-full w-80 transform bg-white shadow-xl transition-transform duration-300 ease-in-out {isMobile ? 'fixed left-0 top-16 h-[calc(100vh-4rem)] z-30' : 'relative z-10'} {isOpen ? 'translate-x-0' : '-translate-x-full'}"
+	class="h-full w-80 transform bg-white shadow-xl transition-transform duration-300 ease-in-out {isMobile ? 'fixed left-0 top-12 h-[calc(100vh-3rem)] z-30' : 'relative z-10'} {isOpen ? 'translate-x-0' : '-translate-x-full'}"
 >
 	<div class="flex h-full flex-col overflow-y-auto p-6">
 		{#if isMobile}

@@ -16,7 +16,6 @@
 
 		if (/iPad|iPhone|iPod/.test(userAgent)) {
 			deviceType = 'ios'
-			// iOS >12 unterstützt AR Quick Look mit USDZ oder GLB
 			showButton = !!(usdzUrl || glbUrl)
 			return
 		}
@@ -42,9 +41,9 @@
 	function openAndroidSceneViewer(url: string) {
 		const titleElement = document.querySelector('h1')
 		const title = titleElement?.textContent || 'AR Model'
-		const sceneViewerUrl = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(url)}&mode=ar_only&title=${encodeURIComponent(title)}`
+		const intentUrl = `intent://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(url)}&mode=ar_preferred&title=${encodeURIComponent(title)}#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(url)}&mode=ar_preferred;end;`
 
-		window.location.href = sceneViewerUrl
+		window.location.href = intentUrl
 	}
 
 	onMount(() => {
@@ -54,7 +53,6 @@
 
 {#if showButton}
 	{#if deviceType === 'ios'}
-		<!-- iOS AR Quick Look unterstützt USDZ und GLB -->
 		<a
 			bind:this={arLink}
 			href={usdzUrl || glbUrl}

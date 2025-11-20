@@ -120,25 +120,19 @@ async function loadRecords() {
 		searchAbortController.abort()
 	}
 
-	// Create new abort controller for this request
 	searchAbortController = new AbortController()
-
-	// Set loading state when navigation starts
 	isNavigating = true
 
 	try {
-		// construct url parameters from pageNumber, sort, size and title
 		const params = new URLSearchParams()
 		params.set('page', pageNumber.toString())
 		sortBy && params.set('sort', sortBy)
 		size && params.set('size', size.toString())
 		filterName && params.set('title', filterName)
 
-		// Update URL without reloading the page
 		const newUrl = `records?${params.toString()}`
 		history.replaceState({}, '', newUrl)
 
-		// Call the load function from +page.ts directly
 		const baseUrl = 'https://zenodo.org/api/records'
 		const creator = 'Junior Professorship for Digital Humanities'
 		const queryParts = [`metadata.creators.person_or_org.name:"${creator}"`]
@@ -166,11 +160,9 @@ async function loadRecords() {
 		const total = result?.hits?.total
 		const hits = result?.hits?.hits.map((record: any) => filterZenodoRecord(record))
 
-		// Update the data
 		records = hits
 		totalRecords = total ?? 0
 
-		// Update pagination
 		const maxApiResults = Math.min(totalRecords, 10000)
 		maxPages = Math.ceil(maxApiResults / size)
 

@@ -16,7 +16,6 @@
 	function detectDevice() {
 		const userAgent = navigator.userAgent
 
-		// Nur auf Desktop-Geräten anzeigen
 		if (!/iPad|iPhone|iPod|Android/i.test(userAgent)) {
 			isDesktop = true
 		}

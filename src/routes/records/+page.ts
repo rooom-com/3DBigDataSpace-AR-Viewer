@@ -24,7 +24,7 @@ async function getZenodoRecords({
 		q: query,
 		page,
 		size,
-		sort, // 'bestmatch' | 'mostrecent' | 'mostdownloaded' | 'mostviewed'
+		sort,
 		type: 'dataset'
 	})
 
