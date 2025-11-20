@@ -9,13 +9,15 @@
 
 	let showButton = $state(false)
 	let deviceType: 'ios' | 'android' | 'desktop' = $state('desktop')
+	let arLink: HTMLAnchorElement | null = $state(null)
 
 	function detectDevice() {
 		const userAgent = navigator.userAgent
 
 		if (/iPad|iPhone|iPod/.test(userAgent)) {
 			deviceType = 'ios'
-			showButton = !!usdzUrl
+			// iOS >12 unterstützt AR Quick Look mit USDZ oder GLB
+			showButton = !!(usdzUrl || glbUrl)
 			return
 		}
 
@@ -30,24 +32,11 @@
 	}
 
 	function handleARClick() {
-		if (deviceType === 'ios' && usdzUrl) {
-			openIOSQuickLook(usdzUrl)
+		if (deviceType === 'ios' && arLink) {
+			arLink.click()
 		} else if (deviceType === 'android' && glbUrl) {
 			openAndroidSceneViewer(glbUrl)
 		}
-	}
-
-	function openIOSQuickLook(url: string) {
-		const link = document.createElement('a')
-		link.href = url
-		link.rel = 'ar'
-		link.download = 'model.usdz'
-		link.setAttribute('data-ar', 'true')
-		link.type = 'model/vnd.usdz+zip'
-
-		document.body.appendChild(link)
-		link.click()
-		document.body.removeChild(link)
 	}
 
 	function openAndroidSceneViewer(url: string) {
@@ -64,6 +53,17 @@
 </script>
 
 {#if showButton}
+	{#if deviceType === 'ios'}
+		<!-- iOS AR Quick Look unterstützt USDZ und GLB -->
+		<a
+			bind:this={arLink}
+			href={usdzUrl || glbUrl}
+			rel="ar"
+			style="display: none;"
+		>
+			<img />
+		</a>
+	{/if}
 	<div class="absolute bottom-4 right-4" style="z-index: 99999;">
 		<button
 			class="ar-button flex size-12 items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-lg backdrop-blur-sm transition-all hover:bg-white hover:shadow-xl"

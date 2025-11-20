@@ -142,7 +142,7 @@ async function loadRecords() {
 		const baseUrl = 'https://zenodo.org/api/records'
 		const creator = 'Junior Professorship for Digital Humanities'
 		const queryParts = [`metadata.creators.person_or_org.name:"${creator}"`]
-		filterName && queryParts.push(`title:"${filterName}"`)
+		filterName && queryParts.push(`metadata.title:*${filterName}*`)
 		const query = queryParts.join(' AND ')
 
 		const apiParams = new URLSearchParams({

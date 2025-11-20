@@ -54,6 +54,9 @@
 			generateQRCode()
 		}
 	})
+
+	// iOS ist supported wenn USDZ vorhanden ist, oder GLB (iOS 12+ seit 2018)
+	let iosSupported = $derived(!!(usdzUrl || glbUrl))
 </script>
 
 {#if isDesktop}
@@ -106,20 +109,26 @@
 					<div class="space-y-2 text-left">
 						<p class="text-xs font-semibold text-slate-700">Unterstützte Geräte:</p>
 
-						<div class="flex items-center gap-2 rounded-lg bg-slate-50 p-2 {usdzUrl ? '' : 'opacity-50'}">
+						<div class="flex items-center gap-2 rounded-lg bg-slate-50 p-2 {iosSupported ? '' : 'opacity-50'}">
 							<Icon
 								icon="tabler:brand-apple"
-								class="size-5 {usdzUrl ? 'text-slate-700' : 'text-slate-400'}"
+								class="size-5 {iosSupported ? 'text-slate-700' : 'text-slate-400'}"
 							/>
 							<div class="flex-1">
-								<p class="text-xs font-medium {usdzUrl ? 'text-slate-800' : 'text-slate-500 line-through'}">
+								<p class="text-xs font-medium {iosSupported ? 'text-slate-800' : 'text-slate-500 line-through'}">
 									iOS (iPhone/iPad)
 								</p>
-								<p class="text-[10px] {usdzUrl ? 'text-slate-600' : 'text-slate-400'}">
-									{usdzUrl ? 'AR Quick Look' : 'Keine USDZ-Datei'}
+								<p class="text-[10px] {iosSupported ? 'text-slate-600' : 'text-slate-400'}">
+									{#if usdzUrl}
+										AR Quick Look (USDZ)
+									{:else if glbUrl}
+										AR Quick Look (GLB)
+									{:else}
+										Keine AR-Datei verfügbar
+									{/if}
 								</p>
 							</div>
-							{#if usdzUrl}
+							{#if iosSupported}
 								<Icon icon="tabler:check" class="size-4 text-green-600" />
 							{:else}
 								<Icon icon="tabler:x" class="size-4 text-red-400" />
