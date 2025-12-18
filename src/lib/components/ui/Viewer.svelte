@@ -9,6 +9,7 @@
 	import '@babylonjs/loaders/glTF/2.0/Extensions/KHR_materials_pbrSpecularGlossiness'
 	import '@babylonjs/loaders/glTF/2.0/Extensions/EXT_texture_webp'
 	import '@babylonjs/loaders/glTF/2.0/glTFLoader'
+	import '@babylonjs/core/Shaders/rgbdDecode.fragment'
 
 	import environment from '$lib/assets/environment.env?url'
 
@@ -21,15 +22,20 @@
 	import type { AssetContainer } from '@babylonjs/core/assetContainer'
 	import { Color4 } from '@babylonjs/core/Maths/math.color'
 	import { CubeTexture } from '@babylonjs/core/Materials/Textures/cubeTexture'
+	import type { WebXRDefaultExperience } from '@babylonjs/core/XR/webXRDefaultExperience'
+	import { WebXRState } from '@babylonjs/core/XR/webXRTypes'
 
 	import AnnotationTooltip from './AnnotationTooltip.svelte'
 	import ArButton from './ARButton.svelte'
 	import ARPopover from './ARPopover.svelte'
+	import WebXRButton from './WebXRButton.svelte'
 
 	import { AnnotationRenderer } from '$lib/services/annotationRenderer'
 	import { parseMETSXML, createSampleAnnotations, loadIIIFAnnotationsForRecord } from '../../../services/xmlParser'
 	import type { Annotation3D, AnnotationEvent } from '$lib/types/annotations'
 	import { iiifToAnnotation3D } from '$lib/types/annotations'
+	import type { ModelDimensions } from '$lib/utils/arScaling'
+	import { detectWebXRSupport, createWebXRExperience, type WebXRSupport } from '$lib/utils/webxr'
 
 	let canvas: HTMLCanvasElement | null = null
 
@@ -42,6 +48,14 @@
 	let loadingProgress = $state(0)
 	let error = $state('')
 	let isInitialized = $state(false)
+
+	// Model dimensions for AR scaling (in meters, as per glTF spec: 1 unit = 1 meter)
+	let modelDimensions = $state<ModelDimensions | undefined>(undefined)
+
+	// WebXR support and state
+	let webxrSupport = $state<WebXRSupport | null>(null)
+	let webxrExperience: WebXRDefaultExperience | null = null
+	let isInXR = $state(false)
 
 	let annotationRenderer: AnnotationRenderer | null = null
 	let hoveredAnnotation = $state<Annotation3D | null>(null)
@@ -75,6 +89,81 @@
 		}
 	}
 
+	/**
+	 * Initialize WebXR support detection and setup
+	 * This runs after the scene is created to check for WebXR capabilities
+	 */
+	async function initializeWebXR() {
+		if (!scene) return
+
+		try {
+			// Detect WebXR support
+			webxrSupport = await detectWebXRSupport()
+
+			if (webxrSupport.supportsAR) {
+				console.log('WebXR AR is supported on this device')
+
+				// Create WebXR experience with hit-test and anchors
+				webxrExperience = await createWebXRExperience(scene, {
+					enableHitTest: true,
+					enableAnchors: true,
+					enableDomOverlay: false
+				})
+
+				if (webxrExperience) {
+					// Listen for XR state changes
+					webxrExperience.baseExperience.onStateChangedObservable.add((state) => {
+						isInXR = state === WebXRState.IN_XR
+
+						if (state === WebXRState.IN_XR) {
+							console.log('Entered WebXR AR mode')
+						} else if (state === WebXRState.EXITING_XR) {
+							console.log('Exiting WebXR AR mode')
+						}
+					})
+				}
+			} else {
+				console.log('WebXR AR not supported:', webxrSupport.browserName, 'on', webxrSupport.isAndroid ? 'Android' : webxrSupport.isIOS ? 'iOS' : 'Desktop')
+			}
+		} catch (err) {
+			console.error('Failed to initialize WebXR:', err)
+			// Don't set error state - WebXR is optional enhancement
+		}
+	}
+
+	/**
+	 * Enter WebXR AR mode
+	 * This function is called by the AR button when WebXR is available
+	 */
+	export async function enterWebXR() {
+		if (!webxrExperience) {
+			console.warn('WebXR experience not initialized')
+			return false
+		}
+
+		try {
+			// Enter immersive AR session
+			await webxrExperience.baseExperience.enterXRAsync('immersive-ar', 'local-floor')
+			return true
+		} catch (err) {
+			console.error('Failed to enter WebXR:', err)
+			return false
+		}
+	}
+
+	/**
+	 * Exit WebXR AR mode
+	 */
+	export async function exitWebXR() {
+		if (!webxrExperience) return
+
+		try {
+			await webxrExperience.baseExperience.exitXRAsync()
+		} catch (err) {
+			console.error('Failed to exit WebXR:', err)
+		}
+	}
+
 	function initializeAnnotationSystem() {
 		if (!scene || !camera || !enableAnnotations) return
 
@@ -87,13 +176,14 @@
 
 			annotationRenderer.onAnnotationEvent('click', handleAnnotationClick)
 
+			const source = annotationsUrl ? 'JSON' : 'XML'
+			console.log(`Annotation system initialized, loading from ${source}`)
+
 			if (annotationsUrl) {
 				loadAnnotationsFromJSON(annotationsUrl)
 			} else {
 				loadAnnotationsFromXML()
 			}
-
-			console.log('Annotation system initialized')
 		} catch (err) {
 			console.error('Failed to initialize annotation system:', err)
 		}
@@ -116,6 +206,7 @@
 	async function loadAsset(file: string, fileType: string = 'glb') {
 		const TIMEOUT_MS = 30000
 		let timeoutId: number | undefined
+		let lastLoggedProgress = 0
 
 		try {
 			if (!engine || !scene) {
@@ -138,7 +229,12 @@
 				onProgress: (evt) => {
 					if (evt.lengthComputable) {
 						loadingProgress = (evt.loaded * 100) / evt.total
-						console.log(`Loading progress: ${Math.round(loadingProgress)}%`)
+						// Only log at 25% intervals to reduce console noise
+						const currentMilestone = Math.floor(loadingProgress / 25) * 25
+						if (currentMilestone > lastLoggedProgress && currentMilestone > 0) {
+							console.log(`Loading progress: ${currentMilestone}%`)
+							lastLoggedProgress = currentMilestone
+						}
 					}
 				},
 				pluginExtension: `.${fileType}`
@@ -148,16 +244,15 @@
 
 			if (timeoutId) clearTimeout(timeoutId)
 
-			console.log('Model loaded, container:', container)
-			console.log('Meshes in container:', container.meshes.length)
-			console.log('Meshes:', container.meshes.map(m => ({ name: m.name, vertices: m.getTotalVertices() })))
-
 			if (!container.meshes || container.meshes.length === 0) {
 				throw new Error('Model loaded but contains no meshes')
 			}
 
+			// Consolidate model loading logs into a single summary
+			const totalVertices = container.meshes.reduce((sum, m) => sum + m.getTotalVertices(), 0)
+			console.log(`Model loaded successfully: ${container.meshes.length} meshes, ${totalVertices.toLocaleString()} vertices`)
+
 			container.addAllToScene()
-			console.log('Model added to scene successfully')
 			isLoading = false
 		} catch (err) {
 			if (timeoutId) clearTimeout(timeoutId)
@@ -197,7 +292,6 @@
 
 	async function loadAnnotationsFromJSON(jsonUrl: string) {
 		try {
-			console.log('Loading annotations from JSON:', jsonUrl)
 			const response = await fetch(jsonUrl)
 
 			if (!response.ok) {
@@ -218,8 +312,6 @@
 				throw new Error('Invalid annotation JSON format. Expected an array of annotations or an object with "items" or "annotations" property.')
 			}
 
-			console.log(`Loaded ${iiifAnnotations.length} annotations from JSON`)
-
 			const newAnnotations: Annotation3D[] = []
 			for (const iiifAnnotation of iiifAnnotations) {
 				const annotation3D = iiifToAnnotation3D(iiifAnnotation)
@@ -232,7 +324,7 @@
 				annotationRenderer?.addAnnotation(annotation)
 			}
 
-			console.log(`Displaying ${newAnnotations.length} annotations in 3D scene`)
+			console.log(`Loaded and displayed ${newAnnotations.length} annotations from JSON`)
 		} catch (err) {
 			console.error('Failed to load annotations from JSON:', err)
 			error = `Failed to load annotations: ${err instanceof Error ? err.message : 'Unknown error'}`
@@ -245,23 +337,21 @@
 			const metsRecord = await parseMETSXML(xmlUrl)
 
 			let iiifAnnotations: any[] = []
+			let annotationType = 'fallback'
 
 			if (metsRecord) {
-				console.log('Loaded METS record:', metsRecord)
-
 				const recordId = '17060976'
 
 				const realAnnotations = await loadIIIFAnnotationsForRecord(recordId)
 				if (realAnnotations.length > 0) {
 					iiifAnnotations = realAnnotations
-					console.log(`Found ${realAnnotations.length} IIIF annotations`)
+					annotationType = 'IIIF'
 				} else {
 					iiifAnnotations = createSampleAnnotations(metsRecord.glbUrl || file)
-					console.log(`Created ${iiifAnnotations.length} sample annotations for Reliquary Bust`)
+					annotationType = 'sample'
 				}
 			} else {
 				iiifAnnotations = createSampleAnnotations(file)
-				console.log(`Created ${iiifAnnotations.length} fallback annotations`)
 			}
 
 			const newAnnotations: Annotation3D[] = []
@@ -276,7 +366,7 @@
 				annotationRenderer?.addAnnotation(annotation)
 			}
 
-			console.log(`Displaying ${newAnnotations.length} annotations in 3D scene`)
+			console.log(`Loaded and displayed ${newAnnotations.length} ${annotationType} annotations from XML`)
 		} catch (err) {
 			console.error('Failed to load annotations:', err)
 
@@ -360,18 +450,25 @@
 		}
 
 		try {
-			console.log('Fitting camera to model...')
 			const boundingInfo = container.meshes[0].getHierarchyBoundingVectors()
 			const boundingBox = new BoundingBox(boundingInfo.min, boundingInfo.max)
 			const center = boundingBox.centerWorld
 			const extent = boundingBox.extendSizeWorld
 
-			console.log('Bounding box:', {
-				center: center.asArray(),
-				extent: extent.asArray(),
-				min: boundingBox.minimum.asArray(),
-				max: boundingBox.maximum.asArray()
-			})
+			// Calculate full dimensions (extent is half-size, so multiply by 2)
+			// glTF spec: 1 unit = 1 meter
+			const fullWidth = extent.x * 2
+			const fullHeight = extent.y * 2
+			const fullDepth = extent.z * 2
+
+			// Store model dimensions for AR scaling
+			modelDimensions = {
+				width: fullWidth,
+				height: fullHeight,
+				depth: fullDepth
+			}
+
+			console.log(`Model dimensions (meters): ${fullWidth.toFixed(2)}m × ${fullHeight.toFixed(2)}m × ${fullDepth.toFixed(2)}m`)
 
 			const maxDimension = Math.max(extent.x, extent.y, extent.z)
 			const radius = maxDimension * 1.5
@@ -389,12 +486,7 @@
 			camera.wheelPrecision = (1 / camera.radius) * 400
 			camera.panningSensibility = (1 / camera.radius) * 4000
 
-			console.log('Camera fitted:', {
-				target: camera.target.asArray(),
-				radius: camera.radius,
-				minZ: camera.minZ,
-				maxZ: camera.maxZ
-			})
+			console.log(`Camera fitted to model: radius=${camera.radius.toFixed(2)}, extent=[${extent.x.toFixed(2)}, ${extent.y.toFixed(2)}, ${extent.z.toFixed(2)}]`)
 		} catch (err) {
 			console.error('Error fitting camera:', err)
 			error = 'Failed to position camera on model'
@@ -432,6 +524,9 @@
 				initializeAnnotationSystem()
 				start()
 				await createScene(file, 'glb')
+
+				// Initialize WebXR after scene is loaded
+				await initializeWebXR()
 			} else {
 				console.error('Failed to initialize viewer')
 				error = 'Failed to initialize 3D viewer'
@@ -501,6 +596,19 @@
 		/>
 	{/if}
 
-	<ArButton glbUrl={file} usdzUrl={usdzFile} />
-	<ARPopover glbUrl={file} usdzUrl={usdzFile} />
+	<!-- WebXR AR Button (Android Chrome with WebXR support) -->
+	{#if webxrSupport?.supportsAR}
+		<div class="absolute bottom-4 left-4 right-4 z-10 md:left-auto md:right-4 md:w-80">
+			<WebXRButton
+				{webxrSupport}
+				{isInXR}
+				onEnterXR={enterWebXR}
+				onExitXR={exitWebXR}
+			/>
+		</div>
+	{/if}
+
+	<!-- Native AR Buttons (iOS Quick Look / Android Scene Viewer) -->
+	<ArButton glbUrl={file} usdzUrl={usdzFile} modelDimensions={modelDimensions} webxrAvailable={webxrSupport?.supportsAR ?? false} />
+	<ARPopover glbUrl={file} usdzUrl={usdzFile} modelDimensions={modelDimensions} />
 </div>

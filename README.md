@@ -1,80 +1,111 @@
 # 3DBigDataSpace
 
-## Introduction
+Web application for exploring Europe's cultural heritage artifacts in immersive 3D with AR support.
 
-The 3DBigDataSpace project is an innovative web application that enables users to explore Europe's cultural heritage artifacts in immersive 3D. The platform provides an interactive way to discover, interact with, and appreciate cultural treasures through advanced 3D visualization technology.
+![AR-Viewer Logo](static/logo-ar-viewer.svg)
 
-![3DBigDataSpace Logo](static/logo-3dbigdataspace.svg)
+## Features
 
-## Available Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build locally
-- `npm run check` - Run type checking
-- `npm run format` - Format code with Prettier
-- `npm run lint` - Check code formatting
-- `npm run deploy` - Quick deployment script (git add, commit, push)
-- `npm run production` - Start production server
-
-## Key Features
-
-- **3D Artifact Viewer**: Interactive examination of cultural artifacts in 3D
-- **Browsing and Discovery**: Search, filter, and paginate through the artifact collection
-- **Detailed Record Information**: Comprehensive metadata for each cultural heritage item
-- **Embeddable 3D Viewer**: Standalone viewer that can be embedded in external websites via iframe
-- **AR Support**: Augmented Reality viewing on mobile devices (iOS and Android)
-- **3D Annotations**: Interactive markers with descriptions on 3D models (IIIF 3D format)
-
-## Zenodo Integration
-
-The 3DBigDataSpace application leverages Zenodo (zenodo.org) as a primary data source for accessing cultural heritage records.
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js (latest LTS version recommended)
-- npm or yarn package manager
+- **3D Viewer**: Interactive Babylon.js-based viewer with annotations (IIIF 3D)
+- **WebXR AR Support**: In-browser AR on Android Chrome with hit-testing and placement
+- **Native AR Fallbacks**: iOS AR Quick Look (USDZ) and Android Scene Viewer (GLB)
+- **Automatic Scaling**: Large objects (>2m) scaled to 2m max for practical AR viewing
+- **Embeddable**: iframe integration for external websites
+- **Zenodo Integration**: Cultural heritage data from zenodo.org
+- **Docker Ready**: Production deployment with security hardening
 
 ---
 
-## Embeddable 3D Viewer
+## Quick Start
 
-The platform includes an embeddable 3D viewer that can be integrated into external websites via iframe.
+```bash
+# Development
+npm install
+npm run dev
 
-### Quick Start
+# Production
+npm run build
+node build
+
+# Docker
+docker-compose up -d
+```
+
+## Scripts
+
+- `npm run dev` - Development server
+- `npm run build` - Production build
+- `npm run preview` - Preview build
+- `npm run check` - Type checking
+- `npm run format` - Format code
+
+---
+
+## AR Scaling
+
+Large models (buildings, monuments) are automatically scaled for AR:
+- **Max dimension**: 2 meters
+- **Android**: Server-side GLB scaling via `/api/ar-glb`
+- **iOS**: USDZ files (pre-scaled recommended)
+- **Indicators**: "S" badge on AR buttons, scaling info in popover
+
+Example: 50m × 30m × 20m building → 2.0m × 1.2m × 0.8m (4% scale)
+
+---
+
+## AR Viewer
 
 ```html
-<iframe
-	src="https://your-domain.org/embed?model=MODEL_URL"
-	width="800"
-	height="600"
-	allow="xr-spatial-tracking; accelerometer; gyroscope"
-	allowfullscreen
-	style="border: none;"
-></iframe>
+<iframe src="https://your-domain.org/embed?model=MODEL_URL"
+        width="800" height="600"
+        allow="xr-spatial-tracking; accelerometer; gyroscope"
+        allowfullscreen></iframe>
 ```
 
-### URL Parameters
+**Parameters:**
+- `model` (required): GLB URL from zenodo.org
+- `usdz` (optional): USDZ file for iOS AR
+- `annotations` (optional): IIIF annotations JSON
 
-| Parameter     | Required | Description                                             | Example                                             |
-|---------------|----------|---------------------------------------------------------|-----------------------------------------------------|
-| `model`       | Yes      | GLB model URL (must end with `.glb`)                    | `?model=https://zenodo.org/.../file.glb`            |
-| `usdz`        | No       | USDZ file for iOS AR (must end with `.usdz`)            | `&usdz=https://example.com/file.usdz`               |
-| `annotations` | No       | JSON file with IIIF annotations (must end with `.json`) | `&annotations=https://example.com/annotations.json` |
+---
 
-### Example URLs
+## API Endpoints
 
-**Basic:**
-```
-/embed?model=https://zenodo.org/api/files/8252aacd-bec1-41a4-b343-d70b83bf06b0/68d977cec19c423e869fa911f5ca1a2f.glb
-```
+### `/api/ar-glb`
+Scales GLB files for AR (max 2m). Returns scaled GLB with metadata headers.
 
-**With Annotations:**
-```
-/embed?model=https://zenodo.org/api/files/8252aacd-bec1-41a4-b343-d70b83bf06b0/68d977cec19c423e869fa911f5ca1a2f.glb&annotations=https://your-domain.org/sample-annotations.json
-```
+**Query:** `?url=<zenodo-glb-url>&maxDimension=2.0`
+
+**Response Headers:**
+- `X-AR-Scale-Factor`: e.g., "0.040000"
+- `X-AR-Was-Scaled`: "true"/"false"
+- `X-AR-Original-Dimensions`: "50.000x30.000x20.000"
+- `X-AR-Scaled-Dimensions`: "2.000x1.200x0.800"
+
+### `/api/proxy`
+CORS proxy for Zenodo resources (zenodo.org, iiif.zenodo.org).
+
+**Query:** `?url=<zenodo-url>`
+
+---
+
+## Tech Stack
+
+- **Frontend**: Svelte 5, SvelteKit 2, Tailwind CSS 4
+- **3D**: Babylon.js 8 (with WebXR support), glTF Transform 4
+- **Build**: Vite 7, TypeScript 5
+- **Deploy**: Node.js, Docker
+
+**Key Dependencies:**
+- `@babylonjs/core` - 3D rendering and WebXR
+- `@gltf-transform/*` - GLB processing
+- `qrcode` - QR code generation
+
+---
+
+## Acknowledgments
+
+Cultural heritage data from Zenodo. IIIF Presentation API for 3D annotations.
 
 
 

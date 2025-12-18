@@ -21,7 +21,7 @@ ENV NODE_ENV=production \
     HOST=0.0.0.0
 
 COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm ci --omit=dev --audit --audit-level=high && npm cache clean --force
 
 COPY --from=builder --chown=nodejs:nodejs /app/build ./build
 COPY --from=builder --chown=nodejs:nodejs /app/static ./static
@@ -29,6 +29,10 @@ COPY --from=builder --chown=nodejs:nodejs /app/static ./static
 USER nodejs
 
 EXPOSE 3000
+
+# Health check to monitor container health
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/', (r) => process.exit(r.statusCode === 200 ? 0 : 1))" || exit 1
 
 CMD ["node", "build"]
 

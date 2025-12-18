@@ -8,6 +8,7 @@ import CachedThumbnail from '$lib/components/ui/CachedThumbnail.svelte'
 import { goto } from '$app/navigation'
 import { saveRecordsState, loadRecordsState } from '$lib/stores/recordsState'
 import { onMount } from 'svelte'
+import { page } from '$app/stores'
 
 function throttle<T extends (...args: any[]) => void>(func: T, delay: number): T {
 	let timeoutId: ReturnType<typeof setTimeout> | null = null
@@ -130,8 +131,10 @@ async function loadRecords() {
 		size && params.set('size', size.toString())
 		filterName && params.set('title', filterName)
 
-		const newUrl = `records?${params.toString()}`
-		history.replaceState({}, '', newUrl)
+		const newUrl = `/records?${params.toString()}`
+		// Use goto with replaceState option instead of replaceState directly
+		// This ensures the router is initialized before updating the URL
+		goto(newUrl, { replaceState: true, noScroll: true, keepFocus: true })
 
 		const baseUrl = 'https://zenodo.org/api/records'
 		const creator = 'Junior Professorship for Digital Humanities'
@@ -168,7 +171,7 @@ async function loadRecords() {
 
 	} catch (error) {
 		if (error instanceof Error && error.name !== 'AbortError') {
-			console.error('Failed to load records:', error)
+			console.error('Failed to load records:', error.message)
 		}
 	} finally {
 		isNavigating = false

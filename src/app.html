@@ -3,19 +3,10 @@
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-		<link rel="alternate icon" href="/favicon.png" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
 		<div style="display: contents">%sveltekit.body%</div>
-		<script>
-			// Register service worker to prevent 404 errors
-			if ('serviceWorker' in navigator) {
-				navigator.serviceWorker.register('/sw.js').catch(() => {
-					// Silently ignore registration errors
-				});
-			}
-		</script>
 	</body>
 </html>

@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: 3dbigdataspace
+    container_name: ar-viewer
     restart: unless-stopped
     ports:
       - "3000:3000"

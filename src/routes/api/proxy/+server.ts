@@ -1,43 +1,73 @@
-import type { RequestHandler } from './$types'
+import { error } from '@sveltejs/kit'
+import type { RequestEvent } from '@sveltejs/kit'
 
-export const GET: RequestHandler = async ({ url, fetch }) => {
+/**
+ * Proxy endpoint to fetch external resources and avoid CORS issues
+ * Supports fetching METS XML files and IIIF manifests from Zenodo
+ */
+export async function GET({ url, fetch }: RequestEvent) {
 	const targetUrl = url.searchParams.get('url')
 
 	if (!targetUrl) {
-		return new Response('Missing url parameter', { status: 400 })
+		throw error(400, 'Missing url parameter')
 	}
 
-	// Only allow Zenodo URLs for security
+	// Validate that the URL is from an allowed domain
 	const allowedDomains = [
-		'https://zenodo.org/',
-		'https://iiif.zenodo.org/'
+		'zenodo.org',
+		'iiif.zenodo.org'
 	]
 
-	if (!allowedDomains.some(domain => targetUrl.startsWith(domain))) {
-		return new Response('Only Zenodo URLs are allowed', { status: 403 })
+	let parsedUrl: URL
+	try {
+		parsedUrl = new URL(targetUrl)
+	} catch {
+		throw error(400, 'Invalid URL')
+	}
+
+	const isAllowed = allowedDomains.some(domain => 
+		parsedUrl.hostname === domain || parsedUrl.hostname.endsWith(`.${domain}`)
+	)
+
+	if (!isAllowed) {
+		throw error(403, `Domain ${parsedUrl.hostname} is not allowed`)
 	}
 
 	try {
-		const response = await fetch(targetUrl)
-		
+		const response = await fetch(targetUrl, {
+			headers: {
+				'User-Agent': '3DBigDataSpace/1.0'
+			}
+		})
+
 		if (!response.ok) {
-			return new Response(`Failed to fetch: ${response.status}`, { status: response.status })
+			// Consolidate logging - only log server errors and in development mode
+			if (response.status >= 500) {
+				console.error(`Proxy error ${response.status} fetching ${parsedUrl.hostname}: ${response.statusText}`)
+			} else if (import.meta.env.DEV && response.status === 404) {
+				console.warn(`Proxy: Resource not found at ${parsedUrl.hostname}`)
+			}
+			throw error(response.status, `Failed to fetch resource: ${response.statusText}`)
 		}
 
 		const contentType = response.headers.get('content-type') || 'application/octet-stream'
-		const data = await response.text()
+		const content = await response.text()
 
-		return new Response(data, {
+		return new Response(content, {
 			status: 200,
 			headers: {
 				'Content-Type': contentType,
-				'Access-Control-Allow-Origin': '*',
-				'Cache-Control': 'public, max-age=3600'
+				'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+				'Access-Control-Allow-Origin': '*'
 			}
 		})
-	} catch (error) {
-		console.error('Proxy error:', error)
-		return new Response(`Proxy error: ${error}`, { status: 500 })
+	} catch (err) {
+		// Only log unexpected errors (not HTTP errors which are already logged above)
+		if (err && typeof err === 'object' && 'status' in err) {
+			throw err
+		}
+		console.error(`Proxy error fetching ${parsedUrl.hostname}:`, err instanceof Error ? err.message : err)
+		throw error(500, `Failed to fetch resource: ${err instanceof Error ? err.message : 'Unknown error'}`)
 	}
 }
 

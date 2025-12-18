@@ -8,7 +8,7 @@
 <div
 	class="relative z-10 mx-auto flex h-full w-full max-w-[800px] flex-col items-center justify-center gap-8 text-center text-slate-700"
 >
-	<img class="w-140 drop-shadow-lg" src="logo-3dbigdataspace.svg" alt="" />
+	<img class="w-140 drop-shadow-lg" src="logo-ar-viewer.svg" alt="" />
 
 	<div class="bg-white/90 backdrop-blur-sm rounded-lg p-8 shadow-lg">
 		<h2 class="mb-3 text-2xl font-bold text-slate-800">Explore Europe's Cultural Heritage in Stunning 3D</h2>

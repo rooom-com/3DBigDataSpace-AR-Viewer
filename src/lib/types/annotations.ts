@@ -223,7 +223,7 @@ export function iiifToAnnotation3D(iiifAnnotation: any): Annotation3D | null {
 		// TODO: Handle polygon annotations with WKTSelector
 		return null
 	} catch (error) {
-		console.error('Error converting IIIF annotation:', error)
+		console.error('Failed to convert IIIF annotation:', error instanceof Error ? error.message : error)
 		return null
 	}
 }

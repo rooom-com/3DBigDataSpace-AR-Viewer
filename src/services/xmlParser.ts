@@ -66,9 +66,43 @@ export interface IIIFAnnotationPage {
 	items: IIIFAnnotation[]
 }
 
+/**
+ * Helper function to fetch external resources through proxy to avoid CORS issues
+ */
+async function fetchThroughProxy(url: string, retries = 3): Promise<Response> {
+	const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`
+
+	for (let attempt = 0; attempt < retries; attempt++) {
+		try {
+			const response = await fetch(proxyUrl)
+			if (response.ok) {
+				return response
+			}
+
+			// If not the last attempt and got a server error, retry
+			if (attempt < retries - 1 && response.status >= 500) {
+				const delay = Math.min(1000 * Math.pow(2, attempt), 5000) // Exponential backoff, max 5s
+				await new Promise(resolve => setTimeout(resolve, delay))
+				continue
+			}
+
+			throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`)
+		} catch (error) {
+			if (attempt === retries - 1) {
+				throw error
+			}
+			// Wait before retry
+			const delay = Math.min(1000 * Math.pow(2, attempt), 5000)
+			await new Promise(resolve => setTimeout(resolve, delay))
+		}
+	}
+
+	throw new Error('Failed to fetch after retries')
+}
+
 export async function parseMETSXML(xmlUrl: string): Promise<METSRecord | null> {
 	try {
-		const response = await fetch(xmlUrl)
+		const response = await fetchThroughProxy(xmlUrl)
 		if (!response.ok) {
 			throw new Error(`Failed to fetch XML: ${response.status}`)
 		}
@@ -112,14 +146,20 @@ export async function parseMETSXML(xmlUrl: string): Promise<METSRecord | null> {
 
 		return record
 	} catch (error) {
-		console.error('Error parsing METS XML:', error)
+		console.error('Failed to parse METS XML:', error instanceof Error ? error.message : error)
 		return null
 	}
 }
 
+/**
+ * Parse a IIIF Presentation API manifest from a URL
+ * Note: This function can be used with custom IIIF manifests hosted externally.
+ * Zenodo does not provide IIIF endpoints, so this will only work with
+ * user-provided manifest URLs or custom IIIF servers.
+ */
 export async function parseIIIFManifest(manifestUrl: string): Promise<IIIFManifest | null> {
 	try {
-		const response = await fetch(manifestUrl)
+		const response = await fetchThroughProxy(manifestUrl)
 		if (!response.ok) {
 			throw new Error(`Failed to fetch IIIF manifest: ${response.status}`)
 		}
@@ -127,7 +167,7 @@ export async function parseIIIFManifest(manifestUrl: string): Promise<IIIFManife
 		const manifest = await response.json() as IIIFManifest
 		return manifest
 	} catch (error) {
-		console.error('Error parsing IIIF manifest:', error)
+		console.error('Failed to parse IIIF manifest:', error instanceof Error ? error.message : error)
 		return null
 	}
 }
@@ -216,27 +256,24 @@ export function createSampleAnnotations(modelUrl: string): IIIFAnnotation[] {
 }
 
 export async function loadIIIFAnnotationsForRecord(recordId: string): Promise<IIIFAnnotation[]> {
+	// NOTE: Zenodo does not currently provide IIIF manifests for records.
+	// The IIIF Presentation API is not part of Zenodo's infrastructure.
+	// This function is kept for future compatibility if Zenodo adds IIIF support,
+	// or if custom IIIF manifests are uploaded as files to Zenodo records.
+
 	try {
-		const possibleUrls = [
-			`https://zenodo.org/api/iiif/records/${recordId}/manifest.json`,
-			`https://zenodo.org/records/${recordId}/manifest.json`,
-			`https://iiif.zenodo.org/${recordId}/manifest.json`
-		]
+		// Check if a IIIF manifest file exists in the Zenodo record's files
+		// This would require fetching the record metadata and checking for .json files
+		// that follow IIIF Presentation API structure
 
-		for (const url of possibleUrls) {
-			try {
-				const manifest = await parseIIIFManifest(url)
-				if (manifest) {
-					return extractCommentingAnnotations(manifest)
-				}
-			} catch (error) {
-				continue
-			}
+		// For now, we return an empty array since Zenodo doesn't provide IIIF endpoints
+		// Only log in development mode to reduce production console noise
+		if (import.meta.env.DEV) {
+			console.info(`IIIF manifests not available from Zenodo for record ${recordId}, using fallback annotations`)
 		}
-
 		return []
 	} catch (error) {
-		console.error('Error loading IIIF annotations:', error)
+		console.error('Failed to load IIIF annotations:', error instanceof Error ? error.message : error)
 		return []
 	}
 }

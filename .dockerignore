@@ -9,10 +9,9 @@ yarn-error.log*
 build
 dist
 
-# Environment files
-.env
-.env.local
-.env.*.local
+# Environment files (security: exclude all env files)
+.env*
+!.env.example
 
 # IDE
 .vscode
@@ -48,4 +47,28 @@ README.md
 .prettierrc
 .eslintrc*
 tsconfig.json
+
+# Security: Exclude sensitive files
+*.pem
+*.key
+*.cert
+*.p12
+secrets.yml
+credentials.json
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+.circleci
+
+# Logs and temporary files
+logs
+*.log
+tmp
+temp
+.tmp
+.cache
+coverage
+.nyc_output
 

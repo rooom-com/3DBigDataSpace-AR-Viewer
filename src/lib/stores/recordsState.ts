@@ -16,7 +16,10 @@ export function saveRecordsState(state: RecordsState): void {
 		}
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(stateWithScroll))
 	} catch (error) {
-		console.warn('Failed to save records state to localStorage:', error)
+		// Only log in development - localStorage errors are usually quota/privacy issues
+		if (import.meta.env.DEV) {
+			console.warn('Failed to save records state:', error instanceof Error ? error.message : error)
+		}
 	}
 }
 
@@ -27,7 +30,10 @@ export function loadRecordsState(): RecordsState | null {
 			return JSON.parse(stored)
 		}
 	} catch (error) {
-		console.warn('Failed to load records state from localStorage:', error)
+		// Only log in development
+		if (import.meta.env.DEV) {
+			console.warn('Failed to load records state:', error instanceof Error ? error.message : error)
+		}
 	}
 	return null
 }
@@ -36,7 +42,10 @@ export function clearRecordsState(): void {
 	try {
 		localStorage.removeItem(STORAGE_KEY)
 	} catch (error) {
-		console.warn('Failed to clear records state from localStorage:', error)
+		// Silently fail - clearing state is not critical
+		if (import.meta.env.DEV) {
+			console.warn('Failed to clear records state:', error instanceof Error ? error.message : error)
+		}
 	}
 }
 
